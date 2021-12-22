@@ -31,7 +31,7 @@ public class Stars3D {
         starZ[i] = ((float)Math.random()) * spread;
     }
 
-    public void UpdateAndRender(Bitmap target, float delta) {
+    public void UpdateAndRender(RenderContext target, float delta) {
         target.Clear((byte)0x00);
 
         float halfWidth = target.GetWidth()/2;
@@ -50,7 +50,7 @@ public class Stars3D {
             if (x < 0 || x >= target.GetWidth() || y < 0 || y >= target.GetHeight())  {
                 InitStar(i);
             } else {
-                target.DrawPixel(x, y, (byte)0x00, (byte)0xFF, (byte)0xFF, (byte)0xFF);
+                target.DrawPixel(x, y, (byte)0xFF, (byte)0xFF , (byte)0xFF, (byte)0xFF);
             }
         }
     }

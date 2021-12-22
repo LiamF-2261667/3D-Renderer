@@ -11,7 +11,7 @@ public class Display extends Canvas{
 
         private final JFrame            frame;
         private final BufferedImage     displayImage;
-        private final Bitmap            frameBuffer;
+        private final RenderContext     frameBuffer;
         private final byte[]            displayComponents;
         private final BufferStrategy    bufferStrategy;
         private final Graphics          graphics;
@@ -25,7 +25,7 @@ public class Display extends Canvas{
             setMaximumSize(size);
 
             //setup bitmap
-            frameBuffer = new Bitmap(width, height);
+            frameBuffer = new RenderContext(width, height);
             displayImage = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
             displayComponents = ((DataBufferByte) displayImage.getRaster().getDataBuffer()).getData();
 
@@ -56,6 +56,6 @@ public class Display extends Canvas{
             bufferStrategy.show();
         }
 
-        public Bitmap GetFrameBuffer() {return frameBuffer;}
+        public RenderContext GetFrameBuffer() {return frameBuffer;}
 
 }
