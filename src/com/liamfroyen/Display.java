@@ -30,7 +30,7 @@ public class Display extends Canvas{
             displayComponents = ((DataBufferByte) displayImage.getRaster().getDataBuffer()).getData();
 
             //set bg color
-            frameBuffer.Clear((byte) 0xFF);
+            frameBuffer.Clear((byte)0x00);
 
             //setup frame
             frame = new JFrame();

@@ -1,5 +1,7 @@
 package com.liamfroyen;
 
+import javax.xml.bind.DatatypeConverter;
+
 public class RenderContext extends Bitmap{
 
     private final int scanBuffer[];
@@ -9,48 +11,82 @@ public class RenderContext extends Bitmap{
         scanBuffer = new int[height * 2];
     }
 
-    public void DrawScanBuffer(int yCoord, int xMin, int xMax) {
-        scanBuffer[yCoord * 2    ] = xMin;
-        scanBuffer[yCoord * 2 + 1] = xMax;
-    }
-
-    public void FillShape(int yMin, int yMax) {
+    public void FillShape(int yMin, int yMax, byte r, byte g, byte b) {
         for (int i = yMin; i < yMax; i++) {
             int xMin = scanBuffer[i * 2    ];
             int xMax = scanBuffer[i * 2 + 1];
 
             for (int j = xMin; j < xMax; j++) {
-                DrawPixel(j, i, (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF);
+                DrawPixel(j, i, (byte)0xFF, g, b, r);
             }
         }
     }
 
-    public void ScanConvertTriangle(Vertex minVert, Vertex midVert, Vertex maxVert, int whichSide) {
-        ScanConvertLine(minVert, maxVert, 0 + whichSide);
-        ScanConvertLine(minVert, midVert, 1 - whichSide);
-        ScanConvertLine(midVert, maxVert, 1 - whichSide);
+    public void DrawMesh(Mesh mesh, Matrix4f trans) {
+        for (int i = 0; i < mesh.getNumIndices(); i += 3) {
+            FillTriangle(
+                    mesh.getVertex(mesh.getIndex(i)).Transform(trans),
+                    mesh.getVertex(mesh.getIndex(i + 1)).Transform(trans),
+                    mesh.getVertex(mesh.getIndex(i + 2)).Transform(trans));
+        }
     }
 
     public void FillTriangle(Vertex v1, Vertex v2, Vertex v3) {
-        Vertex minVert_ = v1;
-        Vertex midVert_ = v2;
-        Vertex maxVert_ = v3;
+        Matrix4f screenSpaceTransform = new Matrix4f().InitScreenSpaceTransform(GetWidth()/2, GetHeight()/2);
 
-        if(maxVert_.GetY() < midVert_.GetY()) SwapVertex(maxVert_, midVert_);
-        if(midVert_.GetY() < minVert_.GetY()) SwapVertex(midVert_, minVert_);
-        if(maxVert_.GetY() < midVert_.GetY()) SwapVertex(maxVert_, midVert_);
+        Vertex minVert_ = v1.Transform(screenSpaceTransform).PerspectiveDivide();
+        Vertex midVert_ = v2.Transform(screenSpaceTransform).PerspectiveDivide();
+        Vertex maxVert_ = v3.Transform(screenSpaceTransform).PerspectiveDivide();
+
+        if (minVert_.TriangleArea(maxVert_, midVert_) >= 0) return;
+
+        if(maxVert_.GetY() < midVert_.GetY())
+        {
+            Vertex temp = maxVert_;
+            maxVert_ = midVert_;
+            midVert_ = temp;
+        }
+
+        if(midVert_.GetY() < minVert_.GetY())
+        {
+            Vertex temp = midVert_;
+            midVert_ = minVert_;
+            minVert_ = temp;
+        }
+
+        if(maxVert_.GetY() < midVert_.GetY())
+        {
+            Vertex temp = maxVert_;
+            maxVert_ = midVert_;
+            midVert_ = temp;
+        }
+
 
         float area = minVert_.TriangleArea(maxVert_, midVert_);
         int whichSide = area >= 0 ? 1 : 0;
 
         ScanConvertTriangle(minVert_, midVert_, maxVert_, whichSide);
-        FillShape((int) minVert_.GetY(), (int) maxVert_.GetY());
+
+        //getting the color from depth
+        float z1 = maxVert_.GetZ();
+        float z2 = midVert_.GetZ();
+        float z3 = maxVert_.GetZ();
+
+        float avr = (z1 + z2 + z3)/3;
+        int amountOfGray = 555 - Math.round(avr*255*2f);
+        if (amountOfGray < 0) amountOfGray = 0;
+
+        String hex = String.format("%02x%02x%02x", amountOfGray, amountOfGray, amountOfGray);
+        byte[] decodedToByte = DatatypeConverter.parseHexBinary(hex);
+
+        FillShape((int) minVert_.GetY(), (int) maxVert_.GetY(), decodedToByte[0], decodedToByte[1], decodedToByte[2]);
+
     }
 
-    private void SwapVertex(Vertex toSwap, Vertex target) {
-        Vertex temp = toSwap;
-        toSwap = target;
-        target = temp;
+    public void ScanConvertTriangle(Vertex minVert_, Vertex midVert_, Vertex maxVert_, int whichSide) {
+        ScanConvertLine(minVert_, maxVert_, 0 + whichSide);
+        ScanConvertLine(minVert_, midVert_, 1 - whichSide);
+        ScanConvertLine(midVert_, maxVert_, 1 - whichSide);
     }
 
     private void ScanConvertLine(Vertex minVert, Vertex maxVert, int whichSide) {

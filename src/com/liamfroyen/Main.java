@@ -1,43 +1,45 @@
 package com.liamfroyen;
 
+import java.io.IOException;
+
 public class Main {
 
-    public static float delta;
-    public static Stars3D stars;
+    public static void main(String[] args) throws IOException {
+        Display display = new Display(1920, 1080, "3D Renderer");
+        RenderContext target = display.GetFrameBuffer();
+        Stars3D stars = new Stars3D(10000, 64.0f, 8.0f, 120);
 
-    public static void main(String[] args) {
-        StartDisplay();
         target.Clear((byte)0x00);
 
-        Vertex p1 = new Vertex(400, 500);
-        Vertex p2 = new Vertex(560, 600);
-        Vertex p3 = new Vertex(908, 1080);
+        Mesh monkey = new Mesh("./monkey.obj");
+        Mesh highResMonkey = new Mesh("./monkeyHighRes.obj");
+        Mesh tree = new Mesh("./tree.obj");
+        Mesh cube = new Mesh("./cube.obj");
+        Mesh sphere = new Mesh("./sphere.obj");
 
-        target.FillTriangle(p1, p2, p3);
+        Matrix4f projection = new Matrix4f().InitPerspective((float)Math.toRadians(70.0f),
+                (float)target.GetWidth()/(float)target.GetHeight(), 0.1f, 1000.0f);
 
-        //stars = new Stars3D(8096, 64.0f, 30.0f, 120);
-
+        float rotCounter = 0.0f;
         long previousTime = System.nanoTime();
-        while (true) {
+        while(true)
+        {
             long currentTime = System.nanoTime();
-            delta = (float) ((currentTime - previousTime)/1000000000.0);
+            float delta = (float)((currentTime - previousTime)/1000000000.0);
             previousTime = currentTime;
 
-            Update();
+            //stars.UpdateAndRender(target, delta);
+
+            rotCounter += delta;
+            Matrix4f translation = new Matrix4f().InitTranslation(0.0f, 0.0f, 3.0f);
+            Matrix4f rotation = new Matrix4f().InitRotation(rotCounter, 0.0f, rotCounter);
+            //Matrix4f rotation = new Matrix4f().InitRotation(0.0f, rotCounter, 0.0f);
+            Matrix4f transform = projection.Mul(translation.Mul(rotation));
+
+            target.Clear((byte)0x8F);
+            target.DrawMesh(sphere, transform);
+
+            display.SwapBuffers();
         }
     }
-
-    public static Display display;
-    public static RenderContext target;
-
-    public static void StartDisplay() {
-        display = new Display(1920 , 1080, "3D Rendering Engine");
-        target = display.GetFrameBuffer();
-    }
-
-    public static void Update() {
-        //stars.UpdateAndRender(target, delta);
-        display.SwapBuffers();
-    }
-
 }
